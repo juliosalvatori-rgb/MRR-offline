@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#10261f">
+    <title>T12 Field Activation</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">T12 Field Activation</p>
+        <h1 id="periodTitle">MRR Tracker</h1>
+      </div>
+      <button class="icon-button" id="installButton" type="button" aria-label="Install app" title="Install app">
+        <span aria-hidden="true">+</span>
+      </button>
+    </header>
+
+    <main>
+      <section class="summary" aria-label="Progress summary">
+        <div class="metric">
+          <span class="metric-value" id="selectedCount">0</span>
+          <span class="metric-label">Selected</span>
+        </div>
+        <div class="metric">
+          <span class="metric-value" id="implementedCount">0</span>
+          <span class="metric-label">Implemented</span>
+        </div>
+        <div class="metric">
+          <span class="metric-value" id="sustainedCount">0</span>
+          <span class="metric-label">Sustained</span>
+        </div>
+      </section>
+
+      <section class="controls" aria-label="Filters">
+        <div class="search-row">
+          <input id="searchInput" type="search" autocomplete="off" placeholder="Search account or country">
+          <button class="icon-button" id="addButton" type="button" aria-label="Add account" title="Add account">+</button>
+        </div>
+        <div class="segmented" id="statusFilter" role="tablist" aria-label="Status filter">
+          <button type="button" class="active" data-filter="All">All</button>
+          <button type="button" data-filter="Implemented">Implemented</button>
+          <button type="button" data-filter="Blocked">Blocked</button>
+        </div>
+      </section>
+
+      <section class="list" id="recordList" aria-label="Accounts"></section>
+    </main>
+
+    <nav class="bottom-actions" aria-label="App actions">
+      <button id="exportButton" type="button">Export CSV</button>
+      <button id="resetButton" type="button">Reset</button>
+    </nav>
+
+    <dialog id="editorDialog">
+      <form method="dialog" id="editorForm">
+        <div class="dialog-header">
+          <h2 id="dialogTitle">Account</h2>
+          <button class="icon-button" value="cancel" aria-label="Close" title="Close">x</button>
+        </div>
+
+        <label>
+          Account
+          <input id="accountInput" name="account" autocomplete="off" required>
+        </label>
+        <div class="account-picker" id="accountPicker" aria-label="Account results"></div>
+
+        <label>
+          Initiative
+          <select id="initiativeInput" name="initiative"></select>
+        </label>
+
+        <label>
+          Status
+          <select id="statusInput" name="status"></select>
+        </label>
+
+        <label>
+          Current action
+          <textarea id="actionInput" name="action" rows="3"></textarea>
+        </label>
+
+        <fieldset>
+          <legend>KPI impact</legend>
+          <label class="check"><input type="checkbox" id="certInput"> Cert</label>
+          <label class="check"><input type="checkbox" id="salesInput"> Sales</label>
+          <label class="check"><input type="checkbox" id="conedInput"> ConEd</label>
+          <label class="check"><input type="checkbox" id="proInput"> Pro</label>
+        </fieldset>
+
+        <label>
+          Notes
+          <textarea id="notesInput" name="notes" rows="3"></textarea>
+        </label>
+
+        <menu>
+          <button id="deleteButton" type="button" class="danger">Delete</button>
+          <button type="submit" class="primary">Save</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
