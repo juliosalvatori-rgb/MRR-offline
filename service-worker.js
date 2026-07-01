@@ -1,4 +1,4 @@
-const cacheName = "t12-mrr-offline-v6";
+const cacheName = "t12-mrr-offline-v7";
 
 const assets = [
   "./",
@@ -9,6 +9,7 @@ const assets = [
   "./manifest.webmanifest?v=6",
   "./icon.png",
   "./apple-touch-icon.png",
+  "./icon.svg",
 ];
 
 self.addEventListener("install", (event) => {
