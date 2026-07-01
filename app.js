@@ -1,10 +1,17 @@
 const seed = window.TRACKER_SEED;
-const storageKey = "t12-mrr-tracker-v1";
+const activeProfileKey = "t12-mrr-active-profile-v1";
+const storagePrefix = "t12-mrr-profile-v1:";
+const optionSets = {
+  quarters: ["Q3", "Q4"],
+  months: ["July", "August", "September", "October", "November", "December"],
+  rms: ["Julio", "Kristina", "Claudio", "Jorge", "Aitor", "Stavros"],
+  regions: ["4", "10", "19", "33", "91", "92", "93", "94"],
+};
 let deferredInstallPrompt = null;
 let activeFilter = "All";
 let editingIndex = null;
 
-const state = loadState();
+let state = loadState();
 
 const els = {
   periodTitle: document.querySelector("#periodTitle"),
@@ -18,9 +25,18 @@ const els = {
   exportButton: document.querySelector("#exportButton"),
   resetButton: document.querySelector("#resetButton"),
   installButton: document.querySelector("#installButton"),
+  settingsButton: document.querySelector("#settingsButton"),
   dialog: document.querySelector("#editorDialog"),
+  settingsDialog: document.querySelector("#settingsDialog"),
+  closeButtons: document.querySelectorAll(".dialog-close"),
+  settingsForm: document.querySelector("#settingsForm"),
   form: document.querySelector("#editorForm"),
   dialogTitle: document.querySelector("#dialogTitle"),
+  quarterInput: document.querySelector("#quarterInput"),
+  monthInput: document.querySelector("#monthInput"),
+  rmInput: document.querySelector("#rmInput"),
+  regionInput: document.querySelector("#regionInput"),
+  storeFileNote: document.querySelector("#storeFileNote"),
   accountPicker: document.querySelector("#accountPicker"),
   accountInput: document.querySelector("#accountInput"),
   initiativeInput: document.querySelector("#initiativeInput"),
@@ -35,19 +51,63 @@ const els = {
 };
 
 function loadState() {
-  const saved = localStorage.getItem(storageKey);
+  const activeMeta = loadActiveMeta();
+  const saved = localStorage.getItem(storageKeyFor(activeMeta));
   if (saved) {
     try {
       return JSON.parse(saved);
     } catch {
-      localStorage.removeItem(storageKey);
+      localStorage.removeItem(storageKeyFor(activeMeta));
     }
   }
-  return structuredClone({ meta: seed.meta, records: seed.records });
+
+  const records = isSeedProfile(activeMeta) ? seed.records : [];
+  return structuredClone({ meta: withTargets(activeMeta), records });
 }
 
 function saveState() {
-  localStorage.setItem(storageKey, JSON.stringify(state));
+  localStorage.setItem(storageKeyFor(state.meta), JSON.stringify(state));
+  localStorage.setItem(activeProfileKey, JSON.stringify(state.meta));
+}
+
+function loadActiveMeta() {
+  const saved = localStorage.getItem(activeProfileKey);
+  if (saved) {
+    try {
+      return withTargets(JSON.parse(saved));
+    } catch {
+      localStorage.removeItem(activeProfileKey);
+    }
+  }
+  return withTargets(seed.meta);
+}
+
+function withTargets(meta) {
+  return {
+    quarter: meta.quarter || seed.meta.quarter,
+    month: meta.month || seed.meta.month,
+    rm: meta.rm || seed.meta.rm,
+    region: String(meta.region || seed.meta.region),
+    targetAccounts: Number(meta.targetAccounts || seed.meta.targetAccounts || 12),
+    targetImplemented: Number(meta.targetImplemented || seed.meta.targetImplemented || 8),
+  };
+}
+
+function profileId(meta) {
+  return [meta.quarter, meta.month, meta.rm, meta.region].join("|");
+}
+
+function storageKeyFor(meta) {
+  return `${storagePrefix}${profileId(meta)}`;
+}
+
+function isSeedProfile(meta) {
+  return profileId(withTargets(meta)) === profileId(withTargets(seed.meta));
+}
+
+function currentStores() {
+  const storeFiles = seed.storeFiles || {};
+  return storeFiles[profileId(state.meta)] || seed.stores;
 }
 
 function render() {
@@ -106,10 +166,20 @@ function renderRecord(record, index) {
 }
 
 function populateOptions() {
+  fillSelect(els.quarterInput, optionSets.quarters);
+  fillSelect(els.monthInput, optionSets.months);
+  fillSelect(els.rmInput, optionSets.rms);
+  fillSelect(els.regionInput, optionSets.regions);
   els.initiativeInput.innerHTML = ["", ...seed.initiativeOptions]
     .map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value || "Select initiative")}</option>`)
     .join("");
   els.statusInput.innerHTML = seed.statusOptions
+    .map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`)
+    .join("");
+}
+
+function fillSelect(select, options) {
+  select.innerHTML = options
     .map((value) => `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`)
     .join("");
 }
@@ -138,7 +208,7 @@ function openEditor(index = null) {
 function renderAccountPicker() {
   const query = els.accountInput.value.trim().toLowerCase();
   const selectedAccounts = new Set(state.records.map((record) => record.account));
-  const matches = seed.stores
+  const matches = currentStores()
     .filter((store) => {
       const text = `${store.store} ${store.country} ${store.number} ${store.account}`.toLowerCase();
       return !query || text.includes(query);
@@ -156,6 +226,46 @@ function renderAccountPicker() {
       `;
     })
     .join("");
+}
+
+function openSettings() {
+  els.quarterInput.value = state.meta.quarter;
+  els.monthInput.value = state.meta.month;
+  els.rmInput.value = state.meta.rm;
+  els.regionInput.value = state.meta.region;
+  updateStoreFileNote();
+  els.settingsDialog.showModal();
+}
+
+function updateStoreFileNote() {
+  const meta = {
+    quarter: els.quarterInput.value,
+    month: els.monthInput.value,
+    rm: els.rmInput.value,
+    region: els.regionInput.value,
+  };
+  const stores = (seed.storeFiles || {})[profileId(withTargets(meta))] || seed.stores;
+  els.storeFileNote.textContent = `Store file: ${stores.length} accounts for this RM / region profile.`;
+}
+
+function applySettings(event) {
+  event.preventDefault();
+  saveState();
+  const nextMeta = withTargets({
+    quarter: els.quarterInput.value,
+    month: els.monthInput.value,
+    rm: els.rmInput.value,
+    region: els.regionInput.value,
+  });
+  localStorage.setItem(activeProfileKey, JSON.stringify(nextMeta));
+  state = loadState();
+  activeFilter = "All";
+  els.searchInput.value = "";
+  els.statusFilter.querySelectorAll("button").forEach((button) => {
+    button.classList.toggle("active", button.dataset.filter === "All");
+  });
+  els.settingsDialog.close();
+  render();
 }
 
 function saveEditor(event) {
@@ -203,7 +313,7 @@ function exportCsv() {
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
-  link.download = `t12-mrr-${state.meta.month}-${state.meta.quarter}.csv`;
+  link.download = `t12-mrr-${state.meta.rm}-region-${state.meta.region}-${state.meta.month}-${state.meta.quarter}.csv`;
   link.click();
   URL.revokeObjectURL(link.href);
 }
@@ -220,6 +330,15 @@ function escapeHtml(value) {
 
 els.searchInput.addEventListener("input", render);
 els.addButton.addEventListener("click", () => openEditor());
+els.closeButtons.forEach((button) => {
+  button.addEventListener("click", () => button.closest("dialog").close());
+});
+els.settingsButton.addEventListener("click", openSettings);
+els.settingsForm.addEventListener("submit", applySettings);
+els.quarterInput.addEventListener("change", updateStoreFileNote);
+els.monthInput.addEventListener("change", updateStoreFileNote);
+els.rmInput.addEventListener("change", updateStoreFileNote);
+els.regionInput.addEventListener("change", updateStoreFileNote);
 els.accountInput.addEventListener("input", renderAccountPicker);
 els.accountInput.addEventListener("focus", renderAccountPicker);
 els.accountPicker.addEventListener("click", (event) => {
@@ -231,9 +350,9 @@ els.accountPicker.addEventListener("click", (event) => {
 els.form.addEventListener("submit", saveEditor);
 els.exportButton.addEventListener("click", exportCsv);
 els.resetButton.addEventListener("click", () => {
-  if (confirm("Reset local changes and reload the spreadsheet data?")) {
-    localStorage.removeItem(storageKey);
-    Object.assign(state, structuredClone({ meta: seed.meta, records: seed.records }));
+  if (confirm("Reset local changes for this RM / region profile?")) {
+    localStorage.removeItem(storageKeyFor(state.meta));
+    state = loadState();
     render();
   }
 });
@@ -269,5 +388,4 @@ if ("serviceWorker" in navigator) {
 }
 
 populateOptions();
-els.installButton.hidden = true;
 render();

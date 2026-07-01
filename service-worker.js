@@ -1,11 +1,11 @@
-const cacheName = "t12-mrr-offline-v2";
+const cacheName = "t12-mrr-offline-v5";
 const assets = [
   "./",
   "./index.html",
-  "./styles.css",
-  "./app.js",
-  "./data.js",
-  "./manifest.webmanifest",
+  "./styles.css?v=4",
+  "./app.js?v=5",
+  "./data.js?v=5",
+  "./manifest.webmanifest?v=4",
   "./icon.svg",
 ];
 
